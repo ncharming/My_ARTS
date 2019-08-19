@@ -1,6 +1,5 @@
 # My_ARTS
 左耳朵耗子发起的ARTS：他的个人博客[酷壳](https://coolshell.cn/) 
-以周为单位：每周最少以下四个都要完成一个。
 
 A：algorithm 算法，每周至少一道 LeetCode 算法题（编程、学习）
 
