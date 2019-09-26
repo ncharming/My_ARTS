@@ -60,17 +60,17 @@ interface Entry<K,V> {
 
 # HashMap
 
-![](.\HashMap.png)
+![](.\picture\HashMap.png)
 
 说说 HashMap 的实现：
 
-HashMap 基于哈希表，底层结构由数组来实现，添加到集合中的元素以“key-value”形式保存到数组中，在数组中key-value 被包装成一个实体类来处理---也就是上面 Map 接口中的 Entry（每一个键值对也叫做 Entry）。
+HashMap 基于哈希表，底层结构由数组来实现，添加到集合中的元素以“key-value”形式保存到数组中，在数组中key-value 被包装成一个实体类来处理---也就是上面 Map 接口中的 Entry（每一个键值对也叫做 Entry）。Java8中HashMap是Node
 
 HashMap 作为一个数据结构，像数组和链表一样用于常规的 CRUD，在 put 的时候会先进行一次分配索引的操作再存储，一旦分配索引存储之后，下次 get 就可以大大缩短查找时间。并且 HashMap 将数组和链表两者结合起来。
 
-HashMap 使用了「数组 + 链表 + 红黑树」(JDK8新增了红黑树)三种数据结构：
+HashMap 使用了「数组 + 链表 + 红黑树」(JDK8 新增了红黑树)三种数据结构：
 
-![HashMap的存储结构](.\HashMap内部结构.png)
+![HashMap的存储结构](.\picture\HashMap内部结构.png)
 
 ## 数据底层具体存储什么
 
@@ -78,9 +78,9 @@ HashMap 使用了「数组 + 链表 + 红黑树」(JDK8新增了红黑树)三种
 >
 >这个重要字段就是哈希桶数组，它是一个Node的数组。
 >
->下面是java8中HashMap的一段源代码：
+>下面是 java8 中 HashMap 的一段源代码：
 >
->Node是HashMap的一个内部类，实现了Map.Entry接口，本质就是一个映射（键值对）。上图中的每个黑色圆点就是一个Node对象。
+>Node 是 HashMap 的一个内部类，实现了 Map.Entry 接口，本质就是一个映射（键值对）。上图中的每个黑色圆点就是一个 Node 对象。
 
 ~~~java
  static class Node<K,V> implements Map.Entry<K,V> {
@@ -126,7 +126,7 @@ HashMap 使用了「数组 + 链表 + 红黑树」(JDK8新增了红黑树)三种
 
 ## 这样的存储有什么优点
 
-HashMap就是使用哈希表来存储的。哈希表为解决冲突，可以采用开放地址法和链地址法等，HashMap中采用了链地址法：数组+链表的组合。**在每个数组元素上都有一个链表结构，当数据被Hash后，得到数组下标，把数据放在对应下标元素的链表上。**
+HashMap就是使用哈希表来存储的。哈希表为解决冲突，可以采用开放地址法和链地址法等，HashMap中采用了**链地址法**：数组+链表的组合。**在每个数组元素上都有一个链表结构，当数据被 Hash 后，得到数组下标，把数据放在对应下标元素的链表上。**
 
 ~~~java
 map.put("nhy","ncharming");
@@ -134,12 +134,12 @@ map.put("nhy","ncharming");
 
 系统将会调用“nhy”这个key的hashCode()方法得到其hashCode值（该方法适用于Java对象），然后再通过Hash算法的后两步运算（高位运算和取模运算）来定位该键值对的存储位置，有时两个key会定位到相同的位置，表示发生了Hash碰撞。当然Hash算法计算结果越分散均匀，Hash碰撞的概率就越小，map的存取效率就会越高。
 
-如果哈希桶数组很大，即使较差的Hash算法也会比较分散，如果哈希桶数组数组很小，即使好的Hash算法也会出现较多碰撞。那么通过什么方式来控制map使得Hash碰撞的概率又小，哈希桶数组（Node[] table）占用空间又少呢？**答案就是好的Hash算法和扩容机制。**
+如果哈希桶数组很大，即使较差的Hash算法也会比较分散，如果哈希桶数组很小，即使好的Hash算法也会出现较多碰撞。那么通过什么方式来控制map使得Hash碰撞的概率又小，哈希桶数组（Node[] table）占用空间又少呢？**答案就是好的Hash算法和扩容机制。**
 
 在了解Hash和扩容流程之前，先了解下面这个几个字段：
 
 ~~~java
-int threshold;     // 所能容纳的key-value对极限
+int threshold;     // 所能容纳的 key-value 对极限
 final float loadFactor; //负载因子
 int modCount;
 int size;
@@ -207,15 +207,27 @@ static final int hash(Object key) {
     // h^(h>>>16) 第二步，高位参与运算
     return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
 }
+// 在上面的值计算好后，在 putVal 中，有如下的代码：
+  if ((p = tab[i = (n - 1) & hash]) == null)
+      //取模运算：得到存储下标
+  (n - 1) & hash：
+  
+  //这个运算就是取模，为了效率问题，使用位运算(&)来代替取模运算(%)。&运算直接对内存数据进行操作，不需要转成十进制，因此处理速度非常快。
 ```
 
-上面代码的计算示例：n 为代码长度
+上面代码的计算示例：n 为 table 长度
 
-![](D:\所有学习总结\java学习\java 基础\集合类相关\Map\HashMap索引运算.png)
+![](.\picture\HashMap索引运算.png)
 
-### 分析HashMap的put方法
+#### tip：&取代%原理
 
-![](D:\所有学习总结\java学习\java 基础\集合类相关\Map\HashMap的put方法.png)
+>X % 2^n = X & (2^n-1)
+>
+>2^n：表示2的n次方；即，**一个数对2^n取模 等于 一个数和(2^n-1)做按位与运算。**
+
+### 分析HashMap的 put 方法
+
+![](.\picture\HashMap的put方法.png)
 
 1. 判断键值对数组table[i]是否为空或null，否则执行resize()进行扩容
 
@@ -223,13 +235,13 @@ static final int hash(Object key) {
 
 3. 判断table[i]的首个元素是否和key一样，如果相同直接覆盖value，否则转向4，这里的相同指的是hashCode以及equals
 
-4. 判断table[i] 是否为treeNode，即table[i] 是否是红黑树，如果是红黑树，则直接在树中插入键值对，否则转向⑤；
+4. 判断table[i] 是否为treeNode，即table[i] 是否是红黑树，如果是红黑树，则直接在树中插入键值对，否则转向5；
 
-5. 遍历table[i]，判断链表长度是否大于8，大于8的话把链表转换为红黑树，在红黑树中执行插入操作，否则进行链表的插入操作；遍历过程中若发现key已经存在直接覆盖value即可；
+5. 遍历table[i]，判断链表长度是否大于8，大于8的话把链表转换为红黑树，在红黑树中执行插入操作，否则进行链表的插入操作；遍历过程中若发现key已经存在直接覆盖value即可；
 
-6. 插入成功后，判断实际存在的键值对数量size是否超多了最大容量threshold，如果超过，进行扩容。
+6. 插入成功后，判断实际存在的键值对数量size是否超过了最大容量threshold，如果超过，进行扩容。
 
-   JDK1.8 HashMap的源码如下：
+   > JDK1.8 HashMap的源码如下：
 
 ```java
 final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
@@ -323,15 +335,15 @@ final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
 
 图a表示扩容前的key1和key2两种可以确定索引位置的示例；图b表示扩容key1和key2两种key确定索引位置的示例，其中hash1是key1对应的哈希与高位运算结果。
 
-![](D:\所有学习总结\java学习\java 基础\集合类相关\Map\扩容前确定索引.png)
+![](.\picture\扩容前确定索引.png)
 
 元素在重新计算hash之后，因为n变为2倍，那么n-1的mask范围在高位多1bit(红色)，因此新的index就会发生这样的变化：
 
-![](D:\所有学习总结\java学习\java 基础\集合类相关\Map\扩容后确定索引.png)
+![](.\picture\扩容后确定索引.png)
 
 因此，我们在扩充HashMap的时候，不需要像JDK1.7的实现那样重新计算hash，只需要看看原来的hash值新增的那个bit是1还是0就好了，是0的话索引没变，是1的话索引变成“原索引+oldCap”,下图是16扩充为32的resize示意图：
 
-![](D:\所有学习总结\java学习\java 基础\集合类相关\Map\16扩充为32的图.png)
+![](.\picture\16扩充为32的图.png)
 
 这个设计确实非常的巧妙，既省去了重新计算hash值的时间，而且同时，由于新增的1bit是0还是1可以认为是随机的，因此resize的过程，均匀的把之前的冲突的节点分散到新的bucket了。这一块就是JDK1.8新增的优化点。有一点注意区别，JDK1.7中rehash的时候，旧链表迁移新链表的时候，如果在新表的数组索引位置相同，则链表元素会倒置，但是从上图可以看出，JDK1.8不会倒置。**有兴趣的同学可以研究下JDK1.8的resize源码**
 
@@ -341,7 +353,6 @@ final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
 
 ~~~java
 public class HashMapInfiniteLoop {  
-
     private static HashMap<Integer,String> map = new HashMap<Integer,String>(2，0.75f);  
     public static void main(String[] args) {  
         map.put(5， "C");  
@@ -366,19 +377,19 @@ public class HashMapInfiniteLoop {
 
 通过设置断点让线程1和线程2同时debug到transfer方法(3.3小节代码块)的首行。注意此时两个线程已经成功添加数据。放开thread1的断点至transfer方法的“Entry next = e.next;” 这一行；然后放开线程2的的断点，让线程2进行resize。结果如下图。
 
-![](D:\所有学习总结\java学习\java 基础\集合类相关\Map\多线程示例1.png)
+![](.\picture\多线程示例1.png)
 
 注意，Thread1的 e 指向了key(3)，而next指向了key(7)，其在线程二rehash后，指向了线程二重组后的链表。
 
 线程一被调度回来执行，先是执行 newTalbe[i] = e， 然后是e = next，导致了e指向了key(7)，而下一次循环的next = e.next导致了next指向了key(3)。
 
-![](D:\所有学习总结\java学习\java 基础\集合类相关\Map\多线程示例2.png)
+![](.\picture\多线程示例2.png)
 
-![](D:\所有学习总结\java学习\java 基础\集合类相关\Map\多线程示例3.png)
+![](.\picture\多线程示例3.png)
 
 e.next = newTable[i] 导致 key(3).next 指向了 key(7)。注意：此时的key(7).next 已经指向了key(3)， 环形链表就这样出现了。
 
-![](D:\所有学习总结\java学习\java 基础\集合类相关\Map\多线程示例4.png)
+![](.\picture\多线程示例4.png)
 
 于是，当我们用线程一调用map.get(11)时，悲剧就出现了——Infinite Loop。
 
@@ -463,7 +474,7 @@ static void test(int mapSize) {
 
 ~~~
 
-![](D:\所有学习总结\java学习\java 基础\集合类相关\Map\性能比较.png)
+![](.\picture\性能比较.png)
 
 通过观测测试结果可知，JDK1.8的性能要高于JDK1.7 15%以上，在某些size的区域上，甚至高于100%。由于Hash算法较均匀，JDK1.8引入的红黑树效果不明显，下面我们看看Hash不均匀的的情况。
 
@@ -485,13 +496,11 @@ class Key implements Comparable<Key> {
 
 仍然执行main方法，得出的结果如下表所示：
 
-![](D:\所有学习总结\java学习\java 基础\集合类相关\Map\性能比较1.png)
+![](.\picture\性能比较1.png)
 
 从表中结果中可知，随着size的变大，JDK1.7的花费时间是增长的趋势，而JDK1.8是明显的降低趋势，并且呈现对数增长稳定。当一个链表太长的时候，HashMap会动态的将它替换成一个红黑树，这话的话会将时间复杂度从O(n)降为O(logn)。hash算法均匀和不均匀所花费的时间明显也不相同，这两种情况的相对比较，可以说明一个好的hash算法的重要性。
 
 两者都是JDK1.8较优
-
-
 
 # 总结
 
